@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raiku - Making Solana Inevitable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+        }
+      }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+        html {
+            scroll-behavior: smooth;
+            /* Fix for anchor links being obscured by fixed header */
+            scroll-padding-top: 5rem; 
+        }
+
+        body {
+            background-color: #000204;
+            color: #FDFDFD;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .font-sf-pro { font-family: 'Inter', sans-serif; }
+        .font-geist-mono { font-family: 'Space Mono', monospace; }
+        .neon-green-text { color: #C0FF38; }
+        .neon-green-bg { background-color: #C0FF38; }
+        .text-dark { color: #000204; }
+        
+        .btn-glow {
+            box-shadow: 0 0 8px #C0FF38, 0 0 20px #C0FF38, 0 0 30px #C0FF38;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-glow:hover {
+            background-color: #a4d329;
+            box-shadow: 0 0 15px #C0FF38, 0 0 35px #C0FF38, 0 0 55px #C0FF38;
+        }
+
+        .nav-link-glow { position: relative; transition: color 0.3s ease; }
+        .nav-link-glow::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #C0FF38;
+            opacity: 0;
+            transition: width 0.3s ease, opacity 0.3s ease;
+            box-shadow: 0 0 5px #C0FF38;
+        }
+        .nav-link-glow:hover { color: #C0FF38; }
+        .nav-link-glow:hover::after { width: 100%; opacity: 1; }
+        
+        #particle-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+
+        .fade-in-load { animation: fadeInAnimation 1s ease-in-out forwards; opacity: 0; }
+        .fade-in-delay-1 { animation-delay: 0.2s; }
+        .fade-in-delay-2 { animation-delay: 0.4s; }
+        .fade-in-delay-3 { animation-delay: 0.6s; }
+        .fade-in-delay-4 { animation-delay: 0.8s; }
+
+        @keyframes fadeInAnimation {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .reveal-on-scroll { opacity: 0; transform: translateY(40px); transition: opacity 1s ease-out, transform 1s ease-out; }
+        .reveal-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
+        
+        .glassmorphism-card {
+            background: rgba(12, 14, 23, 0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 2px solid #C0FF38;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .glassmorphism-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 0 20px #C0FF38, 0 0 40px #C0FF38;
+        }
+        
+        .timeline-container { overflow: hidden; white-space: nowrap; }
+        .timeline-track { animation: scroll-timeline 60s linear infinite; }
+        @keyframes scroll-timeline {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+        
+        .heatmap-cell { transition: background-color 0.2s ease; }
+        .heatmap-cell:hover { background-color: #C0FF38 !important; cursor: pointer; }
+
+        .flowchart-node, .flowchart-arrow { opacity: 0; transition: opacity 1s ease; }
+        .flowchart-node.is-visible, .flowchart-arrow.is-visible { opacity: 1; }
+
+        .hamburger { display: none; }
+        .nav-links { display: flex; }
+        @media (max-width: 768px) {
+            .hamburger { display: block; }
+            .nav-links { display: none; position: absolute; top: 80px; right: 0; background-color: #000204; width: 100%; flex-direction: column; text-align: center; }
+            .nav-links.active { display: flex; }
+            .nav-links a { padding: 1rem; width: 100%; }
+        }
+
+        /* Styles for Scroll Pinning Section */
+        .use-case-item {
+            opacity: 0.3;
+            transform: scale(0.95);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .use-case-item.is-active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+    </style>
+</head>
+<body class="bg-[#000204]">
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- SECTION 1: HEADER & NAVIGATION -->
+    <header class="fixed top-0 left-0 right-0 z-50 h-20 bg-[#000204]/80 backdrop-blur-md">
+        <div class="container mx-auto px-6 h-full flex justify-between items-center">
+            <a href="#hero"><img src="https://i.postimg.cc/PJJsMRY7/Screenshot-2025-10-18-191917.png" alt="Raiku Logo" class="w-[150px] md:w-[180px]"></a>
+            <nav class="nav-links space-x-10">
+                <a href="#blueprints" class="font-sf-pro text-base text-[#FDFDFD] nav-link-glow">Technology</a>
+                <a href="#dashboard" class="font-sf-pro text-base text-[#FDFDFD] nav-link-glow">Use Cases</a>
+                <a href="#use-cases" class="font-sf-pro text-base text-[#FDFDFD] nav-link-glow">Blueprints</a>
+                <a href="#docs" class="font-sf-pro text-base text-[#FDFDFD] nav-link-glow">Docs</a>
+                <a href="#community" class="font-sf-pro text-base text-[#FDFDFD] nav-link-glow">Community</a>
+            </nav>
+            <button class="hamburger z-50 text-white md:hidden">
+                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <!-- SECTION 2: HERO / LANDING -->
+        <section id="hero" class="relative min-h-screen flex items-center justify-center px-6 pt-20 md:pt-0 overflow-hidden">
+            <div class="container mx-auto grid md:grid-cols-2 gap-8 items-center w-full relative z-10">
+                <div class="flex flex-col gap-6 text-center md:text-left items-center md:items-start">
+                    <h1 class="font-sf-pro font-black text-4xl md:text-5xl lg:text-6xl text-[#FDFDFD] leading-tight fade-in-load fade-in-delay-1">Making Solana Inevitable</h1>
+                    <h2 class="font-geist-mono italic text-lg md:text-xl neon-green-text tracking-[2px] fade-in-load fade-in-delay-2">Deterministic execution. Guaranteed transactions.</h2>
+                    <p class="font-sf-pro text-base text-[#FDFDFD] max-w-lg leading-relaxed fade-in-load fade-in-delay-3">Raiku shifts blockchain focus from speed to execution certainty, enabling institutional-grade performance on Solana.</p>
+                    <a href="#dashboard" class="font-sf-pro font-bold text-lg neon-green-bg text-dark py-4 px-8 rounded-lg mt-4 btn-glow fade-in-load fade-in-delay-4">Explore the Visualizer</a>
+                </div>
+                <div class="relative w-full h-[300px] md:h-[500px] flex items-center justify-center">
+                    <div id="shape-container" class="absolute w-full h-full"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: PROBLEM VISUALIZATION -->
+        <section id="technology" class="relative bg-[#000204] py-20 md:h-[900px] flex flex-col justify-center overflow-hidden">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-1/3 bg-gradient-to-r from-transparent via-[#C0FF38] to-transparent"></div>
+            <div class="container mx-auto px-6 grid md:grid-cols-10 gap-8 md:gap-16 items-center w-full">
+                <div class="md:col-span-4 h-[400px] md:h-[600px] relative">
+                    <canvas id="transaction-canvas" class="w-full h-full"></canvas>
+                    <div class="absolute inset-0 flex items-end justify-center p-4">
+                        <div class="bg-black/50 backdrop-blur-sm p-4 rounded-lg text-center text-sm max-w-xs reveal-on-scroll">
+                            <p class="font-bold neon-green-text">VISUALIZATION:</p>
+                            <p class="text-white/80">Dots represent transactions flowing towards the network. During congestion, a central failure point (middle) blocks 75% of traffic (red), while only 25% succeed (green), illustrating the problem Raiku solves.</p>
+                        </div>
+                    </div>
+                    <div class="absolute top-4 left-4 neon-green-text font-geist-mono text-base bg-[#000204]/50 backdrop-blur-sm p-2 rounded">Solana Congestion: 75% Failure Rate</div>
+                </div>
+                <div class="md:col-span-6 flex flex-col gap-6 text-center md:text-left items-center md:items-start">
+                    <div class="reveal-on-scroll">
+                        <h2 class="font-sf-pro font-bold text-4xl md:text-5xl text-[#FDFDFD] leading-tight">Why Transactions Fail on Solana</h2>
+                    </div>
+                    <div class="reveal-on-scroll" style="transition-delay: 150ms;"><h3 class="font-geist-mono italic text-xl md:text-2xl neon-green-text">Speed is nothing without certainty.</h3></div>
+                    <div class="reveal-on-scroll" style="transition-delay: 300ms;"><p class="font-sf-pro text-lg text-[#FDFDFD] max-w-2xl leading-relaxed opacity-90">Solana is known for high throughput, but during network congestion—especially volatile DeFi events—up to 75% of transactions can fail. Missed liquidations, swaps, and game actions cost users millions. Raiku's deterministic execution makes every transaction reliable, every time.</p></div>
+                    <div class="reveal-on-scroll w-full" style="transition-delay: 450ms;">
+                        <ul class="space-y-3 mt-4 text-lg list-disc list-inside text-left max-w-md mx-auto md:mx-0" style="list-style-type: '• ';"><li class="pl-2">Failed liquidations during price crashes</li><li class="pl-2">Unreliable gaming state updates</li><li class="pl-2">Lost MEV and market opportunities</li></ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- SECTION 4: RAIKU SOLUTION - DETERMINISTIC EXECUTION BLUEPRINT -->
+        <section id="blueprints" class="relative bg-[#000204] py-24 px-6 overflow-hidden">
+             <div class="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-1/3 bg-gradient-to-r from-transparent via-[#C0FF38] to-transparent"></div>
+             <div class="container mx-auto text-center">
+                <div class="reveal-on-scroll"><h2 class="font-sf-pro font-bold text-4xl md:text-5xl text-white">Raiku's Deterministic Execution Engine</h2></div>
+                <div class="reveal-on-scroll" style="transition-delay: 150ms;"><p class="font-geist-mono italic text-xl md:text-2xl neon-green-text mt-4">Guaranteed inclusion. Predictable timing. Zero failures.</p></div>
+                
+                <div class="timeline-container w-full mt-16 relative reveal-on-scroll" style="transition-delay: 300ms;">
+                    <div class="timeline-track flex">
+                        <!-- Duplicated for seamless loop -->
+                        <script>
+                            for(let j=0; j<2; j++) {
+                                for (let i = 0; i < 60; i++) {
+                                    const type = Math.random();
+                                    let borderColor = 'border-gray-700';
+                                    let label = 'Standard';
+                                    if (type < 0.3) { borderColor = 'border-green-400'; label = 'AOT Reserved' }
+                                    else if (type < 0.6) { borderColor = 'border-blue-400'; label = 'JIT Scheduled' }
+                                    document.write(`<div class="relative flex-shrink-0 w-32 h-20 border-2 ${borderColor} rounded-md mx-2 flex items-center justify-center group"><span class="text-sm">${i+1}</span><div class="absolute -bottom-16 text-xs p-2 bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity">Pre-confirmed<br/>Slot #${4500+i}<br/>&lt;30ms guarantee</div></div>`);
+                                }
+                            }
+                        </script>
+                    </div>
+                </div>
+                <div class="mt-20 max-w-4xl mx-auto">
+                    <div class="flex justify-center space-x-6 font-geist-mono reveal-on-scroll" style="transition-delay: 450ms;">
+                        <span class="flex items-center"><div class="w-4 h-4 border-2 border-green-400 mr-2"></div>AOT Reserved</span>
+                        <span class="flex items-center"><div class="w-4 h-4 border-2 border-blue-400 mr-2"></div>JIT Scheduled</span>
+                        <span class="flex items-center"><div class="w-4 h-4 border-2 border-gray-700 mr-2"></div>Standard Solana</span>
+                    </div>
+                    <p class="font-sf-pro text-lg text-white max-w-3xl mx-auto leading-relaxed mt-10 opacity-90 reveal-on-scroll" style="transition-delay: 600ms;">
+                        Raiku's Coordination Engine schedules transactions deterministically across 500+ global nodes, issuing cryptographic pre-confirmations before execution. Developers can reserve blockspace up to 60 seconds ahead (AOT) or rely on intelligent just-in-time scheduling (JIT).
+                    </p>
+                </div>
+             </div>
+        </section>
+
+        <!-- SECTION 5: INTERACTIVE DASHBOARD SIMULATION -->
+        <section id="dashboard" class="relative bg-[#000204] py-24 px-6">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-1/3 bg-gradient-to-r from-transparent via-[#C0FF38] to-transparent"></div>
+            <div class="container mx-auto text-center">
+                <div class="reveal-on-scroll"><h2 class="font-sf-pro font-bold text-4xl md:text-5xl text-white">Live Slot Scheduling Dashboard</h2></div>
+                <div class="reveal-on-scroll" style="transition-delay: 150ms;"><p class="font-geist-mono italic text-xl md:text-2xl neon-green-text mt-4">Real-time visualization of deterministic execution</p></div>
+                
+                <div class="mt-16 max-w-6xl mx-auto">
+                    <div class="grid md:grid-cols-3 gap-8 mb-8">
+                        <div class="glassmorphism-card p-6 rounded-xl reveal-on-scroll" style="transition-delay: 300ms;">
+                            <p class="text-white text-lg">Success Rate</p><p class="neon-green-text font-bold text-5xl mt-2">99.8%</p>
+                        </div>
+                        <div class="glassmorphism-card p-6 rounded-xl reveal-on-scroll" style="transition-delay: 450ms;">
+                            <p class="text-white text-lg">Pre-Confirmation Time</p><p class="neon-green-text font-bold text-5xl mt-2">&lt;30ms</p>
+                        </div>
+                        <div class="glassmorphism-card p-6 rounded-xl reveal-on-scroll" style="transition-delay: 600ms;">
+                            <p class="text-white text-lg">Active Slots Reserved</p><p class="neon-green-text font-bold text-5xl mt-2">847</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-10 md:grid-cols-20 gap-1 my-8 p-4 bg-gray-900/50 rounded-lg reveal-on-scroll" style="transition-delay: 750ms;" id="heatmap">
+                        <!-- Heatmap cells will be generated by JS -->
+                    </div>
+                    <div class="h-48 bg-gray-900/50 rounded-lg p-4 overflow-y-scroll text-left font-geist-mono text-sm reveal-on-scroll" style="transition-delay: 900ms;" id="tx-feed">
+                        <!-- Transaction feed will be generated by JS -->
+                    </div>
+                </div>
+                <p class="text-white text-sm italic mt-8 opacity-70">Note: This is a simulation for visualization purposes. Live data integration coming in SDK release.</p>
+            </div>
+        </section>
+
+        <!-- SECTION 6: USE CASES - INTEGRATION BLUEPRINTS (FIXED) -->
+        <section id="use-cases" class="relative bg-[#000204] py-24 px-6">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-1/3 bg-gradient-to-r from-transparent via-[#C0FF38] to-transparent"></div>
+            <div class="container mx-auto text-center mb-16">
+                <div class="reveal-on-scroll"><h2 class="font-sf-pro font-bold text-4xl md:text-5xl text-white">Raiku Integration Blueprints</h2></div>
+                <div class="reveal-on-scroll" style="transition-delay: 150ms;"><p class="font-geist-mono italic text-xl md:text-2xl neon-green-text mt-4">See how Raiku powers the next generation of Solana applications</p></div>
+            </div>
+            <div class="container mx-auto">
+                <div class="md:grid md:grid-cols-2 md:gap-16">
+                    <!-- Pinned Left Column -->
+                    <div class="hidden md:flex flex-col items-center justify-center md:sticky top-0 h-screen">
+                        <div class="text-center mb-8 max-w-xs px-4">
+                            <p class="font-geist-mono text-sm neon-green-text tracking-wider">VISUAL BLUEPRINT</p>
+                            <p class="text-white/70 text-sm mt-2 leading-relaxed">The geometric form visualizes the complexity of each use case. As the challenges become more intricate, so does the blueprint.</p>
+                        </div>
+                        <div id="use-case-shape-container" class="w-full h-1/2"></div>
+                    </div>
+                    <!-- Scrolling Right Column -->
+                    <div class="relative">
+                        <!-- Use Case Items -->
+                        <div class="use-case-item h-screen flex flex-col justify-center py-12 md:py-0">
+                             <div class="glassmorphism-card p-8 rounded-xl text-left flex flex-col">
+                                <svg class="w-16 h-16 neon-green-text" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                                <h3 class="font-sf-pro font-bold text-2xl text-white mt-6">Perpetual DEX</h3>
+                                <p class="text-white text-base leading-relaxed mt-4 flex-grow">Guarantee order matching and eliminate MEV with deterministic execution. Raiku enables CEX-level reliability with DEX transparency for high-frequency trading.</p>
+                            </div>
+                        </div>
+                        <div class="use-case-item h-screen flex flex-col justify-center py-12 md:py-0">
+                           <div class="glassmorphism-card p-8 rounded-xl text-left flex flex-col">
+                                <svg class="w-16 h-16 neon-green-text" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                <h3 class="font-sf-pro font-bold text-2xl text-white mt-6">NFT Marketplaces</h3>
+                                <p class="text-white text-base leading-relaxed mt-4 flex-grow">Ensure mint fairness and instant settlement. Raiku's slot reservations prevent bot manipulation and guarantee transaction inclusion during drops.</p>
+                            </div>
+                        </div>
+                         <div class="use-case-item h-screen flex flex-col justify-center py-12 md:py-0">
+                            <div class="glassmorphism-card p-8 rounded-xl text-left flex flex-col">
+                                <svg class="w-16 h-16 neon-green-text" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M12 10.5h.01M12 13.5h.01M10.5 12h.01M13.5 12h.01M4.879 4.879l1.414 1.414M17.697 17.697l1.414 1.414M4.879 19.121l1.414-1.414M19.121 4.879l-1.414 1.414"></path></svg>
+                                <h3 class="font-sf-pro font-bold text-2xl text-white mt-6">On-Chain Gaming</h3>
+                                <p class="text-white text-base leading-relaxed mt-4 flex-grow">Eliminate desync and lag with guaranteed state updates. Raiku makes real-time multiplayer blockchain gaming finally viable with predictable execution.</p>
+                            </div>
+                        </div>
+                         <div class="use-case-item h-screen flex flex-col justify-center py-12 md:py-0">
+                            <div class="glassmorphism-card p-8 rounded-xl text-left flex flex-col">
+                                <svg class="w-16 h-16 neon-green-text" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 4v1m6.364 1.636l-.707.707M20 12h-1M4 12H3m13.636 6.364l-.707-.707M12 20v-1m-6.364-1.636l.707-.707M12 12a4 4 0 100-8 4 4 0 000 8z"></path></svg>
+                                <h3 class="font-sf-pro font-bold text-2xl text-white mt-6">AI Agent Coordination</h3>
+                                <p class="text-white text-base leading-relaxed mt-4 flex-grow">Enable autonomous AI agents to coordinate multi-step workflows reliably. Raiku's deterministic execution removes uncertainty from on-chain AI operations.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 8: TECHNICAL ARCHITECTURE DIAGRAM -->
+        <section id="docs" class="relative bg-[#000204] py-24 px-6">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-1/3 bg-gradient-to-r from-transparent via-[#C0FF38] to-transparent"></div>
+            <div class="container mx-auto text-center">
+                <div class="reveal-on-scroll"><h2 class="font-sf-pro font-bold text-4xl md:text-5xl text-white">Raiku Architecture Overview</h2></div>
+                <div class="reveal-on-scroll" style="transition-delay: 150ms;"><p class="font-geist-mono italic text-xl md:text-2xl neon-green-text mt-4">From application to guaranteed execution</p></div>
+                
+                <div class="mt-16 max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between space-y-8 md:space-y-0 md:space-x-4">
+                    <div class="flowchart-node border-2 border-white p-4 rounded-lg w-48 text-center reveal-on-scroll">Your Application</div>
+                    <div class="flowchart-arrow text-3xl neon-green-text reveal-on-scroll" style="transition-delay: 200ms;">→</div>
+                    <div class="flowchart-node border-2 border-[#C0FF38] p-4 rounded-lg w-48 text-center reveal-on-scroll" style="transition-delay: 400ms;">Raiku SDK</div>
+                    <div class="flowchart-arrow text-3xl neon-green-text reveal-on-scroll" style="transition-delay: 600ms;">→</div>
+                    <div class="flowchart-node border-2 border-[#C0FF38] p-4 rounded-lg w-48 text-center reveal-on-scroll" style="transition-delay: 800ms;">Coordination Engine</div>
+                    <div class="flowchart-arrow text-3xl neon-green-text reveal-on-scroll" style="transition-delay: 1000ms;">→</div>
+                    <div class="flowchart-node border-2 border-white p-4 rounded-lg w-48 text-center reveal-on-scroll" style="transition-delay: 1200ms;">Solana Consensus</div>
+                    <div class="flowchart-arrow text-3xl neon-green-text reveal-on-scroll" style="transition-delay: 1400ms;">→</div>
+                    <div class="flowchart-node text-green-400 p-4 rounded-lg w-48 text-center reveal-on-scroll" style="transition-delay: 1600ms;">✓ Confirmed Execution</div>
+                </div>
+
+                <p class="font-sf-pro text-lg text-white max-w-3xl mx-auto leading-relaxed mt-16 opacity-90 reveal-on-scroll" style="transition-delay: 1800ms;">
+                    Raiku integrates seamlessly with existing Solana infrastructure. A simple 2-line SDK integration gives your application access to deterministic execution guarantees.
+                </p>
+            </div>
+        </section>
+
+
+        <!-- SECTION 9: CALL TO ACTION -->
+        <section id="community" class="relative bg-gradient-to-t from-[#000804] to-[#000204] py-24 px-6 text-center">
+            <div class="container mx-auto">
+                 <div class="reveal-on-scroll"><h2 class="font-sf-pro font-bold text-4xl md:text-6xl text-white">Build the Inevitable Future</h2></div>
+                 <div class="reveal-on-scroll" style="transition-delay: 150ms;"><p class="font-geist-mono italic text-xl md:text-3xl neon-green-text mt-4">Join 31,000+ developers building on Raiku</p></div>
+                
+                 <div class="flex flex-col md:flex-row justify-center items-center space-y-6 md:space-y-0 md:space-x-12 mt-12 text-lg reveal-on-scroll" style="transition-delay: 300ms;">
+                    <span class="flex items-center"><svg class="w-6 h-6 neon-green-text mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>Early SDK Access</span>
+                    <span class="flex items-center"><svg class="w-6 h-6 neon-green-text mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>Future Builders Lab</span>
+                    <span class="flex items-center"><svg class="w-6 h-6 neon-green-text mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Direct Team Support</span>
+                </div>
+                 
+                <div class="flex flex-col md:flex-row justify-center items-center gap-6 mt-12">
+                    <a href="https://x.com/raikucom" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-3 font-sf-pro font-bold text-xl neon-green-bg text-dark py-4 px-10 rounded-lg btn-glow reveal-on-scroll" style="transition-delay: 450ms;">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        Join on X
+                    </a>
+                    <a href="https://discord.gg/raikucom" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-3 font-sf-pro font-bold text-xl bg-transparent border-2 border-[#C0FF38] text-[#C0FF38] py-4 px-10 rounded-lg hover:bg-[#C0FF38] hover:text-dark transition-colors duration-300 reveal-on-scroll" style="transition-delay: 600ms;">
+                        <svg class="w-7 h-7 text-[#C0FF38] group-hover:text-dark transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.369a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.353-.43.704-.633 1.05-.205.349-.413.701-.61 1.041-1.614.34-3.23.34-4.845 0-.197-.34-.406-.692-.61-1.041-.203-.346-.423-.697-.632-1.05a.074.074 0 00-.08-.037 19.791 19.791 0 00-4.885 1.515.068.068 0 00-.055.065c-.004.148-.01.292-.014.434a19.932 19.932 0 005.022 12.625.076.076 0 00.087.014c.316-.16.62-.33.912-.511a.075.075 0 00.011-.057c-.023-.083-.044-.166-.064-.251a.075.075 0 01.023-.084c.783-.284 1.549-.62 2.29-.998a.075.075 0 01.085-.002c.74.378 1.507.714 2.29.998a.075.075 0 01.023.084c-.02.085-.041.168-.064.251a.075.075 0 00.011.057c.292.18.596.35.912.511a.076.076 0 00.087-.014 19.932 19.932 0 005.022-12.625c-.004-.142-.01-.286-.014-.434a.068.068 0 00-.054-.065zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.974-2.419 2.157-2.419 1.192 0 2.157 1.086 2.157 2.419 0 1.334-.965 2.419-2.157 2.419zm7.974 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.974-2.419 2.157-2.419 1.192 0 2.157 1.086 2.157 2.419 0 1.334-.965 2.419-2.157 2.419z"/></svg>
+                        Join Discord
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- SECTION 10: FOOTER -->
+    <footer class="bg-[#000204] py-8 px-6 border-t border-[#C0FF38]/20">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center text-center md:text-left">
+            <!-- Developer Credit -->
+            <div class="mb-4 md:mb-0">
+                <p class="text-sm text-gray-400">Developed By</p>
+                <div class="flex justify-center md:justify-start space-x-4 mt-2">
+                    <a href="https://x.com/gaminggop24" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-[#C0FF38] transition-colors">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    </a>
+                    <a href="https://github.com/Phonicxxxx24" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-[#C0FF38] transition-colors">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.419 2.865 8.169 6.839 9.492.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.031-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.03 1.595 1.03 2.688 0 3.848-2.338 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.001 10.001 0 0022 12c0-5.523-4.477-10-10-10z" clip-rule="evenodd"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Center Content -->
+            <div class="flex flex-col items-center mb-4 md:mb-0">
+                <img src="https://i.postimg.cc/PJJsMRY7/Screenshot-2025-10-18-191917.png" alt="Raiku Logo" class="w-28 mx-auto">
+                <p class="text-gray-600 text-xs mt-2">Built for Colosseum Cypherpunk Hackathon.</p>
+            </div>
+
+            <!-- Right Links -->
+            <div class="text-sm space-x-6">
+                 <a href="#docs" class="text-white hover:text-[#C0FF38] transition-colors">Docs</a>
+                 <a href="#community" class="text-white hover:text-[#C0FF38] transition-colors">Community</a>
+            </div>
+        </div>
+    </footer>
+
+
+    <script type="module">
+        import * as THREE from 'three';
+        
+        // --- MOBILE NAV ---
+        const hamburger = document.querySelector('.hamburger');
+        const navLinks = document.querySelector('.nav-links');
+        hamburger.addEventListener('click', () => navLinks.classList.toggle('active'));
+        navLinks.addEventListener('click', () => navLinks.classList.remove('active'));
+
+        // --- HERO 3D SHAPE ---
+        let shapeScene, shapeCamera, shapeRenderer, shapeGroup;
+        function initShape() {
+            shapeScene = new THREE.Scene();
+            const container = document.getElementById('shape-container');
+            if (!container) return;
+
+            shapeCamera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            shapeCamera.position.z = 3.5;
+            shapeRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            shapeRenderer.setPixelRatio(window.devicePixelRatio);
+            shapeRenderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(shapeRenderer.domElement);
+            
+            shapeGroup = new THREE.Group();
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0xC0FF38 });
+            const radius = 2;
+
+            // Add outer wireframe sphere
+            const globeGeometry = new THREE.SphereGeometry(radius, 24, 12);
+            const wireframe = new THREE.WireframeGeometry(globeGeometry);
+            const globe = new THREE.LineSegments(wireframe, lineMaterial);
+            globe.material.opacity = 0.2;
+            globe.material.transparent = true;
+            shapeGroup.add(globe);
+
+            // Fetch and draw world map outlines
+            fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+                .then(res => res.json())
+                .then(data => {
+                    data.features.forEach(feature => {
+                        const coords = feature.geometry.coordinates;
+                        if (feature.geometry.type === 'Polygon') {
+                            drawPolygon(coords, radius, lineMaterial);
+                        } else if (feature.geometry.type === 'MultiPolygon') {
+                            coords.forEach(polygonCoords => {
+                                drawPolygon(polygonCoords, radius, lineMaterial);
+                            });
+                        }
+                    });
+                });
+            
+            function drawPolygon(polygon, radius, material) {
+                polygon.forEach(ring => {
+                    const points = [];
+                    ring.forEach(point => {
+                        const lat = point[1];
+                        const lon = point[0];
+                        const phi = (90 - lat) * (Math.PI / 180);
+                        const theta = (lon + 180) * (Math.PI / 180);
+
+                        const x = -(radius * Math.sin(phi) * Math.cos(theta));
+                        const z = (radius * Math.sin(phi) * Math.sin(theta));
+                        const y = (radius * Math.cos(phi));
+                        
+                        points.push(new THREE.Vector3(x, y, z));
+                    });
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const line = new THREE.Line(geometry, material);
+                    shapeGroup.add(line);
+                });
+            }
+
+            shapeScene.add(shapeGroup);
+        }
+
+        function animateShape() {
+             if (shapeGroup) {
+                shapeGroup.rotation.y += 0.001;
+            }
+            if (shapeRenderer) {
+                shapeRenderer.render(shapeScene, shapeCamera);
+            }
+        }
+
+        // --- PROBLEM VISUALIZATION ---
+        let txScene, txCamera, txRenderer, txPoints;
+        let particles = [];
+        let isTxAnimationVisible = false;
+        
+        function initTxVis() {
+            const canvas = document.getElementById('transaction-canvas');
+            if (!canvas) return;
+
+            txScene = new THREE.Scene();
+            txCamera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+            
+            txRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+            txRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
+
+            const pointCount = 500;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(pointCount * 3);
+            const colors = new Float32Array(pointCount * 3);
+
+            const successColor = new THREE.Color(0xC0FF38);
+            const initialColor = new THREE.Color(0xFDFDFD);
+            const failColor = new THREE.Color(0xFF4136);
+            
+            const area = { w: canvas.clientWidth, h: canvas.clientHeight };
+            txCamera.position.z = area.w / 2;
+
+
+            for (let i = 0; i < pointCount; i++) {
+                const x = -area.w / 2;
+                const y = (Math.random() - 0.5) * area.h;
+                const z = (Math.random() - 0.5) * 200;
+                
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                initialColor.toArray(colors, i * 3);
+
+                particles.push({
+                    isSuccessful: Math.random() < 0.25,
+                    isFailing: false,
+                    velocity: new THREE.Vector3(Math.random() * 0.5 + 0.2, 0, 0),
+                    initialPos: new THREE.Vector3(x, y, z),
+                    opacity: 1
+                });
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            
+            const material = new THREE.PointsMaterial({ 
+                size: 3, 
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                depthWrite: false
+            });
+            
+            txPoints = new THREE.Points(geometry, material);
+            txScene.add(txPoints);
+        }
+
+        function animateTxVis() {
+            if (!isTxAnimationVisible || !txPoints) return;
+            
+            const positions = txPoints.geometry.attributes.position.array;
+            const colors = txPoints.geometry.attributes.color.array;
+            const area = { w: txRenderer.domElement.clientWidth, h: txRenderer.domElement.clientHeight };
+            const barrierX = 0;
+            const failDistance = 20;
+            
+            const successColor = new THREE.Color(0xC0FF38);
+            const failColor = new THREE.Color(0xFF4136);
+
+            for(let i=0; i < particles.length; i++) {
+                positions[i*3] += particles[i].velocity.x;
+
+                // Check for failure condition
+                if (!particles[i].isSuccessful && !particles[i].isFailing && positions[i*3] > barrierX - failDistance) {
+                    particles[i].isFailing = true;
+                }
+
+                if (particles[i].isFailing) {
+                    particles[i].velocity.x *= 0.9; // Slow down
+                    particles[i].opacity -= 0.05; // Fade out
+                    failColor.toArray(colors, i*3);
+                } else if (positions[i*3] > barrierX) {
+                    successColor.toArray(colors, i*3);
+                }
+
+                // Reset particle
+                if (positions[i*3] > area.w / 2 || particles[i].opacity <= 0) {
+                    positions[i*3] = particles[i].initialPos.x;
+                    positions[i*3+1] = (Math.random() - 0.5) * area.h;
+                    
+                    particles[i].isFailing = false;
+                    particles[i].velocity.x = Math.random() * 0.5 + 0.2;
+                    particles[i].opacity = 1;
+                    new THREE.Color(0xFDFDFD).toArray(colors, i*3);
+                }
+            }
+
+            txPoints.geometry.attributes.position.needsUpdate = true;
+            txPoints.geometry.attributes.color.needsUpdate = true;
+
+            txRenderer.render(txScene, txCamera);
+        }
+
+        // --- USE CASE 3D SHAPE ---
+        let useCaseScene, useCaseCamera, useCaseRenderer, useCaseShapes = [], activeUseCaseIndex = 0;
+        function initUseCaseShape() {
+            const container = document.getElementById('use-case-shape-container');
+            if(!container) return;
+
+            useCaseScene = new THREE.Scene();
+            useCaseCamera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            useCaseCamera.position.z = 5;
+
+            useCaseRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            useCaseRenderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(useCaseRenderer.domElement);
+
+            const geometries = [
+                new THREE.TorusKnotGeometry(1.5, 0.4, 100, 16),
+                new THREE.BoxGeometry(2.5, 2.5, 2.5),
+                new THREE.IcosahedronGeometry(2, 0),
+                new THREE.OctahedronGeometry(2, 0)
+            ];
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0xC0FF38 });
+
+            geometries.forEach((geometry, index) => {
+                const edges = new THREE.EdgesGeometry(geometry);
+                const shape = new THREE.LineSegments(edges, lineMaterial);
+                shape.visible = (index === 0);
+                useCaseScene.add(shape);
+                useCaseShapes.push(shape);
+            });
+        }
+        function animateUseCaseShape() {
+            if(useCaseShapes.length > 0) {
+                const activeShape = useCaseShapes[activeUseCaseIndex];
+                activeShape.rotation.x += 0.001;
+                activeShape.rotation.y += 0.001;
+            }
+            if(useCaseRenderer) {
+                useCaseRenderer.render(useCaseScene, useCaseCamera);
+            }
+        }
+
+
+        // --- DASHBOARD SIMULATION ---
+        function initDashboard() {
+            const heatmap = document.getElementById('heatmap');
+            const txFeed = document.getElementById('tx-feed');
+            if(!heatmap || !txFeed) return;
+
+            // Heatmap
+            for(let i = 0; i < 200; i++) {
+                const cell = document.createElement('div');
+                const type = Math.random();
+                let color = 'bg-gray-800/50';
+                if(type < 0.2) color = 'bg-green-500/80';
+                else if (type < 0.25) color = 'bg-red-500/80';
+                cell.className = `w-full h-4 rounded-sm heatmap-cell ${color}`;
+                heatmap.appendChild(cell);
+            }
+            
+            // Transaction Feed
+            setInterval(() => {
+                const p = document.createElement('p');
+                p.innerHTML = `<span class="neon-green-text">[${new Date().toLocaleTimeString()}]</span> <span>Tx: ${(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)).slice(0, 12)}...</span>`;
+                txFeed.prepend(p);
+                if(txFeed.children.length > 50) txFeed.lastChild.remove();
+            }, 1000);
+        }
+
+        // --- MAIN ANIMATION LOOP & OBSERVER ---
+        function animate() {
+            requestAnimationFrame(animate);
+            animateShape();
+            animateTxVis();
+            animateUseCaseShape();
+        }
+        
+        function setupIntersectionObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                         if (entry.target.id === 'transaction-canvas') isTxAnimationVisible = true;
+                    }
+                });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.reveal-on-scroll, .flowchart-node, .flowchart-arrow, #transaction-canvas').forEach(el => observer.observe(el));
+        
+             // Observer for the sticky scrolling section
+            const useCaseItems = document.querySelectorAll('.use-case-item');
+            const useCaseObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+                        const index = parseInt(entry.target.dataset.index);
+                        useCaseItems.forEach(item => item.classList.remove('is-active'));
+                        entry.target.classList.add('is-active');
+
+                        activeUseCaseIndex = index;
+                        useCaseShapes.forEach((shape, i) => {
+                            shape.visible = (i === index);
+                        });
+                    }
+                });
+            }, { threshold: 0.6 });
+
+            useCaseItems.forEach((item, index) => {
+                item.dataset.index = index;
+                useCaseObserver.observe(item)
+            });
+        }
+
+        // --- INITIALIZATION ---
+        initShape(); 
+        initTxVis();
+        initUseCaseShape();
+        initDashboard();
+        animate();
+        setupIntersectionObserver();
+    </script>
+</body>
+</html>
