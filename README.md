@@ -7,4 +7,5 @@ Raiku Visualizer is an interactive web blueprint built for the Inevitable Ideath
 # Features
 Dynamic hero section with branded visualsCongestion visualization: transaction failure demo during Solana network spikesDeterministic engine and slot scheduling timelineLive dashboard showing blockspace success rates and instant slot reservationsUse case blueprints: DEX, NFTs, gaming, AI agent coordinationArchitecture diagram for developer integrationWhy It MattersDuring volatile periods on Solana, up to 75% of transactions can fail—leading to lost opportunities and unreliable experiences. Raiku guarantees institutional-grade certainty with cryptographically pre-confirmed execution, and this visualizer makes those guarantees tangible for all stakeholders.
 # Architecture
-Your Application → Raiku SDK → Coordination Engine → Solana Consensus → Confirmed ExecutionGetting StartedClone this repo.Open index.html or run framework project with npm run dev.View in any modern browser.For technical details, see the [Raiku-Brand-Kit-9.12.2025.pdf].
+Your Application → Raiku SDK → Coordination Engine → Solana Consensus → Confirmed ExecutionGetting StartedClone this repo.Open index.html or run framework project with npm run dev.View in any modern browser.For technical details, see the Brand Guide:
+https://drive.google.com/file/d/1oaaY4wZBIOVFTsq8E-GTRTJTdq9QYi0P/view.
